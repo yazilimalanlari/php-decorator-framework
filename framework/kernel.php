@@ -1,14 +1,11 @@
 <?php
 require __DIR__ . '/router.php';
+require __DIR__ . '/build.php';
 
 class Kernel {
     private array $routers = array();
     public function __construct() {
-        $directory_list = array_filter(scandir(SRC_FOLDER), function($item) {
-            if ($item != null && $item !== '.' && $item !== '..')
-                return $item;
-        });
-        
+        $directory_list = array_diff(scandir(SRC_FOLDER), array('.', '..'));
         
         foreach($directory_list as $item) {
             $controller_path = SRC_FOLDER . "/$item/$item.controller.php";
@@ -39,7 +36,8 @@ class Kernel {
         
         array_push($this->routers, $router);
 
-        $router->run();
+        if (!BUILD_MODE)
+            $router->run();
     }
 
     private function get_code(string $path): string {
@@ -53,10 +51,18 @@ class Kernel {
             return "";
         }
     }
+
+    public function build() {
+        new Build($this->routers);
+    }
 }
 
 
 
 $init = function() {
-    new Kernel();
+    $kernel = new Kernel();
+
+    if (BUILD_MODE) {
+        $kernel->build();
+    }
 };

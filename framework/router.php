@@ -1,10 +1,10 @@
 <?php
 
 class Router {
-    private string $code;
-    private string $controller_name;
-    private string $controller_uri;
-    private array $routes = array();
+    public string $code;
+    public string $controller_name;
+    public string $controller_uri;
+    public array $routes = array();
     private array $request_uri_array = array();
 
     public function __construct(string &$code, string $controller_uri, string $controller_name) {
@@ -12,11 +12,14 @@ class Router {
         $this->controller_uri = $controller_uri;
         $this->controller_name = $controller_name;
 
-        $this->request_uri_array = array_map(function(string $item) {
-            return "/$item";
-        }, array_values(array_filter(explode('/', $_SERVER['REQUEST_URI']))));
-        if (empty($this->request_uri_array)) {
-            $this->request_uri_array[0] = '/';
+        if (!BUILD_MODE) {
+            $this->request_uri_array = array_map(function(string $item) {
+                return "/$item";
+            }, array_values(array_filter(explode('/', $_SERVER['REQUEST_URI']))));
+        
+            if (empty($this->request_uri_array)) {
+                $this->request_uri_array[0] = '/';
+            }
         }
     }
 
@@ -50,8 +53,8 @@ class Router {
                 $method_pattern = rtrim($controller_pattern, '\/?$/') . ltrim($this->uri_to_pattern($route['uri']), '/^');
                 
                 if (preg_match($method_pattern, $_SERVER['REQUEST_URI'])) {
-                    $code = trim($this->code, '<?php');
-                    eval($code);
+                    $this->code = trim($this->code, '<?php');
+                    eval($this->code);
 
                     if (class_exists($this->controller_name)) {
                         $controller = new $this->controller_name();

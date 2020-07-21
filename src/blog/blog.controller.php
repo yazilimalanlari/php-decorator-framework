@@ -3,7 +3,7 @@
 @Controller('/blog')
 class BlogController {
     
-    @Get("/test")
+    @Get("/")
     public function index() {
         echo "blog index method";
     }

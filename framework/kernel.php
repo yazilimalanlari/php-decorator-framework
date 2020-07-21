@@ -1,4 +1,5 @@
 <?php
+require __DIR__ . '/helper.php';
 require __DIR__ . '/router.php';
 require __DIR__ . '/build.php';
 
@@ -10,7 +11,7 @@ class Kernel {
         foreach($directory_list as $item) {
             $controller_path = SRC_FOLDER . "/$item/$item.controller.php";
             if (file_exists($controller_path)) {
-                $code = $this->get_code($controller_path);
+                $code = file_read($controller_path);
                 if ($code != null) {
                     $this->controller_process($code);
                 }
@@ -38,18 +39,6 @@ class Kernel {
 
         if (!BUILD_MODE)
             $router->run();
-    }
-
-    private function get_code(string $path): string {
-        $filesize = filesize($path);
-        if($filesize > 0) {
-            $file = fopen($path, "r");
-            $code = fread($file, $filesize);
-            fclose($file);
-            return $code;
-        } else {
-            return "";
-        }
     }
 
     public function build() {

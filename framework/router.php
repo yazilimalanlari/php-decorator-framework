@@ -4,10 +4,11 @@ class Router {
     public string $code;
     public string $controller_name;
     public string $controller_uri;
+    public string $controller_path;
     public array $routes = array();
     private array $request_uri_array = array();
 
-    public function __construct(string &$code, string $controller_uri, string $controller_name) {
+    public function __construct(string $code = "", string $controller_uri, string $controller_name) {        
         $this->code = &$code;
         $this->controller_uri = $controller_uri;
         $this->controller_name = $controller_name;
@@ -50,16 +51,30 @@ class Router {
                     continue;
                 }
 
-                $method_pattern = rtrim($controller_pattern, '\/?$/') . ltrim($this->uri_to_pattern($route['uri']), '/^');
+                if ($route['uri'] === '/') {
+                    $method_pattern = '/\/?$/';
+                } else {
+                    $method_pattern = $this->uri_to_pattern($route['uri']);
+                }
+                
+                $method_pattern = rtrim($controller_pattern, '\/?$/') . ltrim($method_pattern, '/^');
+                
                 
                 if (preg_match($method_pattern, $_SERVER['REQUEST_URI'])) {
                     $this->code = trim($this->code, '<?php');
-                    eval($this->code);
+                    
+                    
+                    if (DEVELOPMENT_MODE) {
+                        eval($this->code);
+                    } else if(file_exists($this->controller_path)) {
+                        require $this->controller_path;
+                    }
 
                     if (class_exists($this->controller_name)) {
                         $controller = new $this->controller_name();
                         if (method_exists($controller, $route['method_name'])) {
                             call_user_func(array($controller, $route['method_name']));
+                            break;
                         }
                     }
                 }

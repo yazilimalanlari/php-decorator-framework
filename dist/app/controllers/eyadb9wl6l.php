@@ -1,0 +1,1 @@
+<?php class TestController {  public function index() { echo "test index method"; }}

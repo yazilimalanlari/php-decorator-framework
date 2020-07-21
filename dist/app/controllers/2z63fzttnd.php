@@ -1,0 +1,1 @@
+<?php class ProfileController { public function index() { echo "Burası profil sayfası."; }}

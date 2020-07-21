@@ -16,6 +16,13 @@ if ($arg === 'server start') {
 } else if ($arg === 'build') {
     define('BUILD_MODE', true);
     require __DIR__ . '/index.php';
+} else if($arg === 'clean dist') {
+    $path = sprintf("%s/dist/", __DIR__);
+    if (is_dir($path)) {
+        shell_exec(sprintf("rm -r %s", $path));
+    }
 }
+
+
 
 echo PHP_EOL;

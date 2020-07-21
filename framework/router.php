@@ -32,37 +32,56 @@ class Router {
         ]);
     }
     
-    private function uri_to_pattern(string $uri): string {
-        $uri = preg_replace('@/@', '\/', $uri);
-        $uri = preg_replace_callback('/:([a-z]+)/', function($key) {
-            // print_r($key);
+    private function uri_to_pattern(string $uri, string $start = '/^', string $end = '\/?$/'): object {
+        $request_args = array();
+        
+        $pattern = '/:([a-zA-Z_]{1}[a-zA-Z0-9_]+)/';
+        if (preg_match_all($pattern, $uri, $custom_uri_list)) {
+            $request_args = $custom_uri_list[1];
+            $uri = preg_replace(['@/@', $pattern], ['\/', '([a-zA-Z0-9-_@.]+)'], $uri);
+        } else {
+            $uri = preg_replace('@/@', '\/', $uri);
+        }
 
-            return "[a-zA-Z0-9-_.]+";
-        }, $uri);
-        return "/^$uri\/?$/";
+        return (object)[
+            "pattern" => "$start$uri$end",
+            "default_pattern" => $uri,
+            "request_args" => $request_args
+        ];
+    }
+
+    private function set_request_args(array $request_uri_match, array &$request_args) {
+        
     }
 
     public function run() {
-        $controller_pattern = $this->uri_to_pattern($this->controller_uri);
+        $controller_uri = $this->uri_to_pattern($this->controller_uri === '/' ? '' : $this->controller_uri, '/^', '\//');
+        $request_args = $controller_uri->request_args;
+
+        $request_uri = $_SERVER['REQUEST_URI'];
+        if ($request_uri[strlen($request_uri)-1] !== '/') {
+            $request_uri .= '/';
+        }
         
-        if (preg_match($controller_pattern, $this->request_uri_array[0])) {
+        if (preg_match_all($controller_uri->pattern, $request_uri, $request_uri_match, PREG_SET_ORDER)) {            
             foreach($this->routes as $route) {
                 if (strtoupper($route['request_method']) !== $_SERVER['REQUEST_METHOD']) {
                     continue;
                 }
+                
+                $method_uri = $this->uri_to_pattern($route['uri'] === '/' ? '' : $route['uri'], '', '\/?$/');
+                
+                $method_pattern = sprintf(
+                    '/^%s%s',
+                    $controller_uri->default_pattern,
+                    $method_uri->pattern
+                );                
+                
+                if (preg_match_all($method_pattern, $_SERVER['REQUEST_URI'], $request_uri_match, PREG_SET_ORDER)) {
+                    $request_uri_match = $request_uri_match[0];
+                    array_shift($request_uri_match);
 
-                if ($route['uri'] === '/') {
-                    $method_pattern = '/\/?$/';
-                } else {
-                    $method_pattern = $this->uri_to_pattern($route['uri']);
-                }
-                
-                $method_pattern = rtrim($controller_pattern, '\/?$/') . ltrim($method_pattern, '/^');
-                
-                
-                if (preg_match($method_pattern, $_SERVER['REQUEST_URI'])) {
                     $this->code = trim($this->code, '<?php');
-                    
                     
                     if (DEVELOPMENT_MODE) {
                         eval($this->code);
@@ -71,9 +90,13 @@ class Router {
                     }
 
                     if (class_exists($this->controller_name)) {
+                        $request_args = array_merge($request_args, $method_uri->request_args);
+                        $request_args = (object)array_combine($request_args, $request_uri_match);
+                        
+
                         $controller = new $this->controller_name();
                         if (method_exists($controller, $route['method_name'])) {
-                            call_user_func(array($controller, $route['method_name']));
+                            call_user_func(array($controller, $route['method_name']), $request_args);
                             break;
                         }
                     }

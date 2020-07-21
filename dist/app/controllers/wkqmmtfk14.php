@@ -1,1 +1,0 @@
-<?php class BlogController {  public function index() { echo "blog index method"; }  public function hello_world() { echo "hello world methodu!"; } public function add() { echo "blog ekle"; }}

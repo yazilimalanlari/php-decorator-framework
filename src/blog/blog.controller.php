@@ -8,9 +8,9 @@ class BlogController {
         echo "blog index method";
     }
     
-    @Get('/merhaba-dunya')
-    public function hello_world() {
-        echo "hello world methodu!";
+    @Get('/:link')
+    public function blog_detail(object $args) {
+        echo "Girilen link: $args->link";
     }
 
     @Post('/add')
